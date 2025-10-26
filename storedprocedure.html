@@ -1,0 +1,73 @@
+﻿CREATE PROCEDURE sp_AgregarPaciente
+    @dni NVARCHAR(15),
+    @nombre NVARCHAR(50),
+    @apellido NVARCHAR(50),
+    @telefono NVARCHAR(20),
+    @ObraSocial NVARCHAR(100)
+AS
+BEGIN
+    INSERT INTO Pacientes (dni, nombre, apellido, telefono, ObraSocial)
+    VALUES (@dni, @nombre, @apellido, @telefono, @ObraSocial);
+END
+GO
+
+
+CREATE PROCEDURE sp_ListarPacientes
+AS
+BEGIN
+    SELECT id_paciente, dni, nombre, apellido, telefono, ObraSocial
+    FROM Pacientes;
+END
+GO
+
+
+CREATE PROCEDURE sp_BuscarPacientePorDni
+    @dni NVARCHAR(15)
+AS
+BEGIN
+    SELECT id_paciente
+    FROM Pacientes
+    WHERE dni = @dni;
+END
+GO
+
+CREATE PROCEDURE sp_AgregarTurno
+    @id_paciente INT,
+    @fecha DATE,
+    @hora TIME,
+    @estado NVARCHAR(20)
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM Turnos
+        WHERE id_paciente = @id_paciente AND fecha = @fecha AND hora = @hora
+    )
+    BEGIN
+        RAISERROR('⚠️ El paciente ya tiene un turno reservado en esa fecha y hora.', 16, 1);
+        RETURN;
+    END
+
+    INSERT INTO Turnos (id_paciente, fecha, hora, estado)
+    VALUES (@id_paciente, @fecha, @hora, @estado);
+END
+GO
+
+
+
+CREATE PROCEDURE sp_ListarTurnos
+AS
+BEGIN
+    SELECT
+        T.id_turno,
+        P.nombre,
+        P.apellido,
+        P.dni,
+        P.ObraSocial,
+        T.fecha,
+        T.hora,
+        T.estado
+    FROM Turnos T
+    INNER JOIN Pacientes P ON T.id_paciente = P.id_paciente
+    ORDER BY T.fecha, T.hora;
+END
+GO

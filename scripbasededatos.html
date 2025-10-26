@@ -1,0 +1,147 @@
+﻿-- =====================================
+-- SCRIPT DE CREACIÓN DE BASE DE DATOS
+-- CLINICA_DB
+-- =====================================
+
+-- Crear la base de datos
+CREATE DATABASE CLINICA_DB;
+GO
+
+-- Usar la base
+USE CLINICA_DB;
+GO
+
+-- =====================================
+-- TABLA: Usuarios
+-- =====================================
+CREATE TABLE Usuarios (
+    id_usuario INT IDENTITY(1,1) PRIMARY KEY,
+    nombre_usuario NVARCHAR(50) NOT NULL UNIQUE,
+    contraseña NVARCHAR(100) NOT NULL,
+    rol NVARCHAR(20) CHECK (rol IN ('admin', 'recepcionista', 'doctor')) NOT NULL
+);
+GO
+
+-- =====================================
+-- TABLA: Pacientes
+-- =====================================
+CREATE TABLE Pacientes (
+    id_paciente INT IDENTITY(1,1) PRIMARY KEY,
+    dni NVARCHAR(15) NOT NULL UNIQUE,
+    nombre NVARCHAR(50) NOT NULL,
+    apellido NVARCHAR(50) NOT NULL,
+    email NVARCHAR(100),
+    telefono NVARCHAR(20),
+    fecha_nacimiento DATE,
+    ObraSocial NVARCHAR(100)  -- 🔹 Nueva columna con formato PascalCase
+);
+GO
+
+-- =====================================
+-- TABLA: Turnos
+-- =====================================
+CREATE TABLE Turnos (
+    id_turno INT IDENTITY(1,1) PRIMARY KEY,
+    id_paciente INT NOT NULL,
+    fecha DATE NOT NULL,
+    hora TIME NOT NULL,
+    estado NVARCHAR(20)
+        CHECK (estado IN ('Pendiente', 'Confirmado', 'Cancelado', 'Reservado'))
+        DEFAULT 'Pendiente',
+    observaciones NVARCHAR(255),
+    ObraSocial NVARCHAR(100),  -- 🔹 Copia de la obra social del paciente
+    FOREIGN KEY (id_paciente) REFERENCES Pacientes(id_paciente)
+);
+GO
+
+-- =====================================
+-- PROCEDIMIENTO: Agregar_Turno
+-- Inserta un turno tomando automáticamente
+-- la obra social del paciente.
+-- =====================================
+CREATE PROCEDURE Agregar_Turno
+    @id_paciente INT,
+    @fecha DATE,
+    @hora TIME,
+    @estado NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @ObraSocial NVARCHAR(100);
+
+    -- Obtener la obra social del paciente
+    SELECT @ObraSocial = ObraSocial
+    FROM Pacientes
+    WHERE id_paciente = @id_paciente;
+
+    -- Insertar el nuevo turno
+    INSERT INTO Turnos (id_paciente, fecha, hora, estado, ObraSocial)
+    VALUES (@id_paciente, @fecha, @hora, @estado, @ObraSocial);
+END;
+GO
+
+-- =====================================
+-- PROCEDIMIENTO: Listar_Turnos
+-- Devuelve todos los turnos con datos del paciente.
+-- =====================================
+CREATE PROCEDURE Listar_Turnos
+AS
+BEGIN
+    SELECT
+        T.id_turno,
+        P.nombre,
+        P.apellido,
+        P.dni,
+        T.fecha,
+        T.hora,
+        T.estado,
+        T.ObraSocial
+    FROM Turnos T
+    INNER JOIN Pacientes P ON T.id_paciente = P.id_paciente
+    ORDER BY T.fecha, T.hora;
+END;
+GO
+
+-- =====================================
+-- PROCEDIMIENTO: Eliminar_Turno
+-- =====================================
+CREATE PROCEDURE Eliminar_Turno
+    @id_turno INT
+AS
+BEGIN
+    DELETE FROM Turnos WHERE id_turno = @id_turno;
+END;
+GO
+
+-- =====================================
+-- PROCEDIMIENTO: BuscarPacientePorDNI
+-- =====================================
+CREATE PROCEDURE BuscarPacientePorDNI
+    @dni NVARCHAR(15)
+AS
+BEGIN
+    SELECT id_paciente, nombre, apellido, ObraSocial
+    FROM Pacientes
+    WHERE dni = @dni;
+END;
+GO
+
+-- =====================================
+-- DATOS DE PRUEBA OPCIONALES
+-- =====================================
+
+INSERT INTO Usuarios (nombre_usuario, contraseña, rol)
+VALUES ('admin', 'admin123', 'admin'),
+       ('sofia', 'recep2025', 'recepcionista'),
+       ('dr.amado', 'doctor2025', 'doctor');
+GO
+
+INSERT INTO Pacientes (dni, nombre, apellido, email, telefono, fecha_nacimiento, ObraSocial)
+VALUES ('40300111', 'Lucía', 'Fernández', 'lucia@mail.com', '1122334455', '1995-08-15', 'OSDE'),
+       ('38999123', 'Carlos', 'Pérez', 'carlos@mail.com', '1155667788', '1980-01-10', 'Swiss Medical'),
+       ('42123456', 'María', 'Gómez', 'maria@mail.com', '1199887766', '1990-05-25', 'IOMA');
+GO
+
+PRINT '✅ Base de datos CLINICA_DB creada correctamente con tablas, SP y datos de prueba.';
+GO
