@@ -51,9 +51,9 @@ Exponer tu SQL local (VPN/Firewall) → no recomendado por seguridad/latencia.
 
 Login
 
-Médico: medico1 / 1234
+Médico: medico / 1234
 
-Secretaría: secretaria1 / abcd
+Secretaría: secretaria/ abcd
 
 Alta paciente
 
